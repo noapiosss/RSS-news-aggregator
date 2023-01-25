@@ -1,4 +1,4 @@
-﻿namespace database;
+﻿namespace contracts;
 public class Class1
 {
 
