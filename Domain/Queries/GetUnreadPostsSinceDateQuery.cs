@@ -57,7 +57,7 @@ namespace domain.Queries
                 .Select(rp => rp.Post)
                 .Where(rp => rp.PubDate > request.SinceDate);
 
-            List<Post> unreadPosts = await allPosts.Where(ap => !readPosts.Contains(ap)).ToListAsync(cancellationToken);
+            List<Post> unreadPosts = await allPosts.Except(readPosts).ToListAsync(cancellationToken);
 
             return new()
             {
