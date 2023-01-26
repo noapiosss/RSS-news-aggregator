@@ -99,11 +99,44 @@ namespace domain.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "tbl_read_messages",
+                schema: "public",
+                columns: table => new
+                {
+                    userid = table.Column<int>(name: "user_id", type: "INTEGER", nullable: false),
+                    postid = table.Column<int>(name: "post_id", type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_tbl_read_messages", x => new { x.userid, x.postid });
+                    table.ForeignKey(
+                        name: "FK_tbl_read_messages_tbl_posts_post_id",
+                        column: x => x.postid,
+                        principalSchema: "public",
+                        principalTable: "tbl_posts",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_tbl_read_messages_tbl_users_user_id",
+                        column: x => x.userid,
+                        principalSchema: "public",
+                        principalTable: "tbl_users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_tbl_posts_AuthorId",
                 schema: "public",
                 table: "tbl_posts",
                 column: "AuthorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_tbl_read_messages_post_id",
+                schema: "public",
+                table: "tbl_read_messages",
+                column: "post_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_tbl_subscriptions_feed_id",
@@ -116,7 +149,7 @@ namespace domain.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "tbl_posts",
+                name: "tbl_read_messages",
                 schema: "public");
 
             migrationBuilder.DropTable(
@@ -124,11 +157,15 @@ namespace domain.Migrations
                 schema: "public");
 
             migrationBuilder.DropTable(
-                name: "tbl_feeds",
+                name: "tbl_posts",
                 schema: "public");
 
             migrationBuilder.DropTable(
                 name: "tbl_users",
+                schema: "public");
+
+            migrationBuilder.DropTable(
+                name: "tbl_feeds",
                 schema: "public");
         }
     }

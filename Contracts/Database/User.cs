@@ -27,5 +27,6 @@ namespace Contracts.Database
         public string Password { get; set; }
 
         public ICollection<Subscription> Subscriptions { get; set; }
+        public ICollection<ReadMessage> ReadMessages { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -26,5 +27,6 @@ namespace Contracts.Database
         [Column("publication_date")]
         public DateTime PubDate { get; set; }
         public Feed Author { get; set; }
+        public ICollection<ReadMessage> ReadBy { get; set; }
     }
 }

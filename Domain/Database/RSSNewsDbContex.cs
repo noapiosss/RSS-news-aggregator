@@ -9,6 +9,7 @@ namespace Domain.Database
         public DbSet<Feed> Feeds { get; init; }
         public DbSet<Subscription> Subscriptions { get; init; }
         public DbSet<Post> Posts { get; init; }
+        public DbSet<ReadMessage> ReadMessages { get; init; }
 
         public RSSNewsDbContext() : base()
         {
@@ -21,14 +22,25 @@ namespace Domain.Database
             _ = modelBuilder.Entity<Subscription>()
                 .HasOne(s => s.User)
                 .WithMany(u => u.Subscriptions)
-                .HasForeignKey(l => l.UserId);
+                .HasForeignKey(s => s.UserId);
             _ = modelBuilder.Entity<Subscription>()
                 .HasOne(s => s.Feed)
-                .WithMany(f => f.Subscribers);
+                .WithMany(f => f.Subscribers)
+                .HasForeignKey(s => s.FeedId);
 
             _ = modelBuilder.Entity<Feed>()
                 .HasMany(f => f.Posts)
                 .WithOne(p => p.Author);
+
+            _ = modelBuilder.Entity<ReadMessage>().HasKey(nameof(ReadMessage.UserId), nameof(ReadMessage.PostId));
+            _ = modelBuilder.Entity<ReadMessage>()
+                .HasOne(rm => rm.User)
+                .WithMany(u => u.ReadMessages)
+                .HasForeignKey(rm => rm.UserId);
+            _ = modelBuilder.Entity<ReadMessage>()
+                .HasOne(rm => rm.Post)
+                .WithMany(p => p.ReadBy)
+                .HasForeignKey(rm => rm.PostId);
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

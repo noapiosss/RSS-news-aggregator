@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace domain.Migrations
 {
     [DbContext(typeof(RSSNewsDbContext))]
-    [Migration("20230126023949_Init")]
+    [Migration("20230126183521_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -90,6 +90,23 @@ namespace domain.Migrations
                     b.ToTable("tbl_posts", "public");
                 });
 
+            modelBuilder.Entity("Contracts.Database.ReadMessage", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("PostId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("post_id");
+
+                    b.HasKey("UserId", "PostId");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("tbl_read_messages", "public");
+                });
+
             modelBuilder.Entity("Contracts.Database.Subscription", b =>
                 {
                     b.Property<int>("UserId")
@@ -145,6 +162,25 @@ namespace domain.Migrations
                     b.Navigation("Author");
                 });
 
+            modelBuilder.Entity("Contracts.Database.ReadMessage", b =>
+                {
+                    b.HasOne("Contracts.Database.Post", "Post")
+                        .WithMany("ReadBy")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Contracts.Database.User", "User")
+                        .WithMany("ReadMessages")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Contracts.Database.Subscription", b =>
                 {
                     b.HasOne("Contracts.Database.Feed", "Feed")
@@ -171,8 +207,15 @@ namespace domain.Migrations
                     b.Navigation("Subscribers");
                 });
 
+            modelBuilder.Entity("Contracts.Database.Post", b =>
+                {
+                    b.Navigation("ReadBy");
+                });
+
             modelBuilder.Entity("Contracts.Database.User", b =>
                 {
+                    b.Navigation("ReadMessages");
+
                     b.Navigation("Subscriptions");
                 });
 #pragma warning restore 612, 618
