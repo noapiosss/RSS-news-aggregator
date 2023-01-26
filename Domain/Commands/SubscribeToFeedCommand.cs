@@ -33,11 +33,28 @@ namespace Domain.Commands
             Feed feed = await _dbContext.Feeds.FirstOrDefaultAsync(f => f.Link == request.Feed.Link);
 
             //check if user exists
+            if (user == null)
+            {
+                return new()
+                {
+                    Feed = null
+                };
+            }
+
             //check if feed exists
+            if (feed == null)
+            {
+                feed = request.Feed;
+                _ = await _dbContext.AddAsync(feed, cancellationToken);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            }
 
             if (await _dbContext.Subscriptions.AnyAsync(s => s.UserId == user.Id && s.FeedId == feed.Id))
             {
-                //return already subscribed;
+                return new()
+                {
+                    Feed = null
+                };
             }
 
             Subscription subscription = new()

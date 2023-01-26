@@ -27,6 +27,6 @@ namespace Contracts.Database
         [Column("publication_date")]
         public DateTime PubDate { get; set; }
         public Feed Author { get; set; }
-        public ICollection<ReadMessage> ReadBy { get; set; }
+        public ICollection<ReadPost> ReadBy { get; set; }
     }
 }
