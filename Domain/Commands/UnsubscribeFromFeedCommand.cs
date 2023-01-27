@@ -1,4 +1,4 @@
-using System.Data.Entity;
+using Microsoft.EntityFrameworkCore;
 using System.Threading;
 using System.Threading.Tasks;
 using Contracts.Database;
@@ -30,9 +30,8 @@ namespace Domain.Commands
         public async Task<UnsubscribeFromFeedCommandResult> Handle(UnsubscribeFromFeedCommand request, CancellationToken cancellationToken)
         {
             User user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Username, cancellationToken);
-            Feed feed = await _dbContext.Feeds.FirstOrDefaultAsync(f => f.Link == request.Feed.Link);
 
-            if (user == null || feed == null)
+            if (user == null)
             {
                 return new()
                 {
@@ -43,7 +42,7 @@ namespace Domain.Commands
             Subscription subscription = new()
             {
                 UserId = user.Id,
-                FeedId = feed.Id
+                FeedId = request.Feed.Id
             };
 
             _ = _dbContext.Subscriptions.Attach(subscription);
@@ -52,7 +51,7 @@ namespace Domain.Commands
 
             return new()
             {
-                Feed = null
+                Feed = request.Feed
             };
         }
     }

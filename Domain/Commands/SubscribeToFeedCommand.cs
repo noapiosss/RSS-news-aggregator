@@ -1,4 +1,4 @@
-using System.Data.Entity;
+using Microsoft.EntityFrameworkCore;
 using System.Threading;
 using System.Threading.Tasks;
 using Contracts.Database;
@@ -29,8 +29,8 @@ namespace Domain.Commands
 
         public async Task<SubscribeToFeedCommandResult> Handle(SubscribeToFeedCommand request, CancellationToken cancellationToken)
         {
-            User user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
-            Feed feed = await _dbContext.Feeds.FirstOrDefaultAsync(f => f.Link == request.Feed.Link);
+            User user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Username, cancellationToken: cancellationToken);
+            Feed feed = await _dbContext.Feeds.FirstOrDefaultAsync(f => f.Id == request.Feed.Id, cancellationToken: cancellationToken);
 
             //check if user exists
             if (user == null)
@@ -41,15 +41,7 @@ namespace Domain.Commands
                 };
             }
 
-            //check if feed exists
-            if (feed == null)
-            {
-                feed = request.Feed;
-                _ = await _dbContext.AddAsync(feed, cancellationToken);
-                _ = await _dbContext.SaveChangesAsync(cancellationToken);
-            }
-
-            if (await _dbContext.Subscriptions.AnyAsync(s => s.UserId == user.Id && s.FeedId == feed.Id))
+            if (await _dbContext.Subscriptions.AnyAsync(s => s.UserId == user.Id && s.FeedId == feed.Id, cancellationToken: cancellationToken))
             {
                 return new()
                 {

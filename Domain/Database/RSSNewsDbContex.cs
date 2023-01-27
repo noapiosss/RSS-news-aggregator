@@ -16,6 +16,11 @@ namespace Domain.Database
 
         }
 
+        public RSSNewsDbContext(DbContextOptions<RSSNewsDbContext> options) : base(options)
+        {
+
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             _ = modelBuilder.Entity<Subscription>().HasKey(nameof(Subscription.UserId), nameof(Subscription.FeedId));
@@ -30,7 +35,8 @@ namespace Domain.Database
 
             _ = modelBuilder.Entity<Feed>()
                 .HasMany(f => f.Posts)
-                .WithOne(p => p.Author);
+                .WithOne(p => p.Author)
+                .HasForeignKey(p => p.FeedId);
 
             _ = modelBuilder.Entity<ReadPost>().HasKey(nameof(ReadPost.UserId), nameof(ReadPost.PostId));
             _ = modelBuilder.Entity<ReadPost>()
@@ -43,9 +49,9 @@ namespace Domain.Database
                 .HasForeignKey(rp => rp.PostId);
         }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            _ = optionsBuilder.UseSqlite("Data Source=RSSNewsReader.db");
-        }
+        // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        // {
+        //     _ = optionsBuilder.UseSqlite("Data Source=RSSNewsReader.db");
+        // }
     }
 }

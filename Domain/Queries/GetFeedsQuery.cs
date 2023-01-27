@@ -1,11 +1,11 @@
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using System.Threading;
 using System.Threading.Tasks;
 using Contracts.Database;
 using Domain.Database;
 using MediatR;
+using System.Linq;
 
 namespace domain.Queries
 {

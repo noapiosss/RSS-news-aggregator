@@ -1,9 +1,13 @@
-using System.Data.Entity;
+using Microsoft.EntityFrameworkCore;
+
 using System.Threading;
 using System.Threading.Tasks;
+
 using Contracts.Database;
 using Domain.Database;
+
 using Domain.Helpers.Interfaces;
+
 using MediatR;
 
 namespace Domain.Commands
@@ -25,9 +29,9 @@ namespace Domain.Commands
     internal class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, CreateUserCommandResult>
     {
         private readonly RSSNewsDbContext _dbContext;
-        private readonly IPasswordHelper _passwordHelper;
+        private readonly ISHA256 _passwordHelper;
 
-        public CreateUserCommandHandler(RSSNewsDbContext dbContext, IPasswordHelper passwordHelper)
+        public CreateUserCommandHandler(RSSNewsDbContext dbContext, ISHA256 passwordHelper)
         {
             _dbContext = dbContext;
             _passwordHelper = passwordHelper;

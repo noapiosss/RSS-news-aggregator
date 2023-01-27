@@ -1,4 +1,4 @@
-using System.Data.Entity;
+using Microsoft.EntityFrameworkCore;
 using System.Threading;
 using System.Threading.Tasks;
 using Contracts.Database;
@@ -7,30 +7,30 @@ using MediatR;
 
 namespace Domain.Commands
 {
-    public class MarkAsReadCommand : IRequest<MarkAsReadCommandResult>
+    public class MarkAsReadByIdCommand : IRequest<MarkAsReadByIdCommandResult>
     {
         public string Username { get; set; }
-        public Post Post { get; set; }
+        public int PostId { get; set; }
     }
 
-    public class MarkAsReadCommandResult
+    public class MarkAsReadByIdCommandResult
     {
         public bool IsRead { get; set; }
     }
 
-    internal class MarkAsReadCommandHandler : IRequestHandler<MarkAsReadCommand, MarkAsReadCommandResult>
+    internal class MarkAsReadByIdCommandHandler : IRequestHandler<MarkAsReadByIdCommand, MarkAsReadByIdCommandResult>
     {
         private readonly RSSNewsDbContext _dbContext;
 
-        public MarkAsReadCommandHandler(RSSNewsDbContext dbContext)
+        public MarkAsReadByIdCommandHandler(RSSNewsDbContext dbContext)
         {
             _dbContext = dbContext;
         }
 
-        public async Task<MarkAsReadCommandResult> Handle(MarkAsReadCommand request, CancellationToken cancellationToken)
+        public async Task<MarkAsReadByIdCommandResult> Handle(MarkAsReadByIdCommand request, CancellationToken cancellationToken)
         {
             User user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Username, cancellationToken);
-            Post post = await _dbContext.Posts.FirstAsync(p => p.Link == request.Post.Link);
+            Post post = await _dbContext.Posts.FirstOrDefaultAsync(p => p.Id == request.PostId, cancellationToken);
 
             if (user == null || post == null)
             {
@@ -39,6 +39,14 @@ namespace Domain.Commands
                     IsRead = false
                 };
             };
+
+            if (await _dbContext.ReadPosts.AnyAsync(rp => rp.UserId == user.Id && rp.PostId == post.Id, cancellationToken))
+            {
+                return new()
+                {
+                    IsRead = true
+                };
+            }
 
             ReadPost readPost = new()
             {

@@ -1,4 +1,4 @@
-using System.Data.Entity;
+using Microsoft.EntityFrameworkCore;
 using System.Threading;
 using System.Threading.Tasks;
 using Contracts.Database;
@@ -10,7 +10,7 @@ namespace domain.Queries
 {
     public class SignInQuery : IRequest<SignInQueryResult>
     {
-        public string Login { get; set; }
+        public string Username { get; set; }
         public string Password { get; set; }
     }
 
@@ -24,9 +24,9 @@ namespace domain.Queries
     internal class SignInQueryHandler : IRequestHandler<SignInQuery, SignInQueryResult>
     {
         private readonly RSSNewsDbContext _dbContext;
-        private readonly IPasswordHelper _passwordHelper;
+        private readonly ISHA256 _passwordHelper;
 
-        public SignInQueryHandler(RSSNewsDbContext dbContext, IPasswordHelper passwordHelper)
+        public SignInQueryHandler(RSSNewsDbContext dbContext, ISHA256 passwordHelper)
         {
             _dbContext = dbContext;
             _passwordHelper = passwordHelper;
@@ -34,7 +34,7 @@ namespace domain.Queries
 
         public async Task<SignInQueryResult> Handle(SignInQuery request, CancellationToken cancellationToken = default)
         {
-            User user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Login || u.Email == request.Login, cancellationToken);
+            User user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Username, cancellationToken);
 
             return user == null
                 ? (new()
@@ -46,15 +46,15 @@ namespace domain.Queries
                 : _passwordHelper.GetSHA256(request.Password) != user.Password
                 ? (new()
                 {
-                    SignInIsSuccessful = true,
-                    LoginExists = true,
-                    PasswordIsCorrect = true
-                })
-                : (new()
-                {
                     SignInIsSuccessful = false,
                     LoginExists = true,
                     PasswordIsCorrect = false
+                })
+                : (new()
+                {
+                    SignInIsSuccessful = true,
+                    LoginExists = true,
+                    PasswordIsCorrect = true
                 });
         }
     }

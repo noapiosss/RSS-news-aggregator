@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using System.Threading;
 using System.Threading.Tasks;
 using Contracts.Database;
 using Domain.Database;
 using MediatR;
+using System.Linq;
 
 namespace domain.Queries
 {
@@ -42,22 +42,24 @@ namespace domain.Queries
                 };
             }
 
-            IQueryable<Post> allPosts = _dbContext.Subscriptions
+            IQueryable<int> subscriptionIds = _dbContext.Subscriptions
                 .Where(s => s.UserId == user.Id)
                 .Include(s => s.Feed)
                 .Select(s => s.Feed)
-                .Include(f => f.Posts)
-                .Select(f => f.Posts)
-                .Cast<Post>()
-                .Where(p => p.PubDate > request.SinceDate);
+                .Select(f => f.Id);
 
-            IQueryable<Post> readPosts = _dbContext.ReadPosts
+            List<Post> subscriptionPosts = await _dbContext.Posts
+                .Where(p => subscriptionIds.Contains(p.FeedId))
+                .ToListAsync(cancellationToken);
+
+            List<Post> readPosts = await _dbContext.ReadPosts
                 .Where(rp => rp.UserId == user.Id)
                 .Include(rp => rp.Post)
                 .Select(rp => rp.Post)
-                .Where(rp => rp.PubDate > request.SinceDate);
+                .Where(rp => rp.PubDate > request.SinceDate)
+                .ToListAsync(cancellationToken);
 
-            List<Post> unreadPosts = await allPosts.Except(readPosts).ToListAsync(cancellationToken);
+            List<Post> unreadPosts = subscriptionPosts.Except(readPosts).ToList();
 
             return new()
             {
