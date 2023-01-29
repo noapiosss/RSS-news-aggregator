@@ -1,4 +1,8 @@
 using Api.Configuration;
+using Api.Helpers;
+using Api.Helpers.Interfaces;
+using Api.Services;
+using Api.Services.Interfaces;
 using Domain;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
@@ -24,6 +28,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LogoutPath = new PathString("/sign-out");
     });
 
+builder.Services.AddSingleton<ISyndicationConverter, SyndicationConverter>();
+
 builder.Services.Configure<AppConfiguration>(builder.Configuration);
 
 builder.Services.AddDomainServices((sp, options) =>
@@ -31,6 +37,10 @@ builder.Services.AddDomainServices((sp, options) =>
     IOptionsMonitor<AppConfiguration> configuration = sp.GetRequiredService<IOptionsMonitor<AppConfiguration>>();
     _ = options.UseSqlite(configuration.CurrentValue.ConnectionString);
 });
+
+
+builder.Services.AddSingleton<IAggregator, Aggregator>();
+builder.Services.AddHostedService<BackgroundAggregation>();
 
 WebApplication app = builder.Build();
 

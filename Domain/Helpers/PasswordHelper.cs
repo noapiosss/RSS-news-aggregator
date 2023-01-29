@@ -4,7 +4,7 @@ using Domain.Helpers.Interfaces;
 
 namespace Domain.Helpers
 {
-    public class PasswordHelper : ISHA256
+    public class PasswordHelper : IPasswordHelper
     {
         public string GetSHA256(string password)
         {

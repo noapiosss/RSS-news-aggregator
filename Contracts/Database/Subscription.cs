@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Contracts.Database
 {
-    [Table("tbl_subscriptions", Schema = "public")]
+    [Table("tbl_subscriptions")]
     public class Subscription
     {
         [Column("user_id")]

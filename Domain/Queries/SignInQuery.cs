@@ -24,9 +24,9 @@ namespace domain.Queries
     internal class SignInQueryHandler : IRequestHandler<SignInQuery, SignInQueryResult>
     {
         private readonly RSSNewsDbContext _dbContext;
-        private readonly ISHA256 _passwordHelper;
+        private readonly IPasswordHelper _passwordHelper;
 
-        public SignInQueryHandler(RSSNewsDbContext dbContext, ISHA256 passwordHelper)
+        public SignInQueryHandler(RSSNewsDbContext dbContext, IPasswordHelper passwordHelper)
         {
             _dbContext = dbContext;
             _passwordHelper = passwordHelper;

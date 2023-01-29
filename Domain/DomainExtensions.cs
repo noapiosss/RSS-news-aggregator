@@ -17,7 +17,7 @@ namespace Domain
             Action<IServiceProvider, DbContextOptionsBuilder> dbOptionsAction)
         {
             return services.AddMediatR(typeof(CreateUserCommand))
-                .AddSingleton<ISHA256, PasswordHelper>()
+                .AddSingleton<IPasswordHelper, PasswordHelper>()
                 .AddDbContext<RSSNewsDbContext>(dbOptionsAction);
         }
     }

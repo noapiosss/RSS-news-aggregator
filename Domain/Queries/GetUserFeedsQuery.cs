@@ -9,26 +9,26 @@ using System.Linq;
 
 namespace domain.Queries
 {
-    public class GetFeedsQuery : IRequest<GetFeedsQueryResult>
+    public class GetUserFeedsQuery : IRequest<GetUserFeedsQueryResult>
     {
         public string Username { get; set; }
     }
 
-    public class GetFeedsQueryResult
+    public class GetUserFeedsQueryResult
     {
         public ICollection<Feed> Feeds { get; set; }
     }
 
-    internal class GetFeedsQueryHandler : IRequestHandler<GetFeedsQuery, GetFeedsQueryResult>
+    internal class GetUserFeedsQueryHandler : IRequestHandler<GetUserFeedsQuery, GetUserFeedsQueryResult>
     {
         private readonly RSSNewsDbContext _dbContext;
 
-        public GetFeedsQueryHandler(RSSNewsDbContext dbContext)
+        public GetUserFeedsQueryHandler(RSSNewsDbContext dbContext)
         {
             _dbContext = dbContext;
         }
 
-        public async Task<GetFeedsQueryResult> Handle(GetFeedsQuery request, CancellationToken cancellationToken)
+        public async Task<GetUserFeedsQueryResult> Handle(GetUserFeedsQuery request, CancellationToken cancellationToken)
         {
             User user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Username, cancellationToken);
 

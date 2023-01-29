@@ -6,6 +6,8 @@ using System.ServiceModel.Syndication;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
+using Api.Helpers;
+using Api.Helpers.Interfaces;
 using Contracts.Database;
 using Contracts.Http;
 using domain.Queries;
@@ -19,9 +21,11 @@ namespace Api.Controllers
     public class UserController : ControllerBase
     {
         private readonly IMediator _mediator;
-        public UserController(IMediator mediator)
+        private readonly ISyndicationConverter _syndicationConverter;
+        public UserController(IMediator mediator, ISyndicationConverter syndicationConverter)
         {
             _mediator = mediator;
+            _syndicationConverter = syndicationConverter;
         }
 
         [HttpPut]
@@ -62,15 +66,8 @@ namespace Api.Controllers
 
             using (XmlReader reader = XmlReader.Create(request.Url))
             {
-                SyndicationFeed rssFeed = SyndicationFeed.Load(reader);
-                Feed feed = new()
-                {
-                    Title = rssFeed.Title.Text,
-                    Image = rssFeed.ImageUrl == null ? "" : rssFeed.ImageUrl.ToString(),
-                    Description = rssFeed.Description.Text,
-                    Link = rssFeed.Links.FirstOrDefault().Uri.ToString(),
-                    LastUpdate = new()
-                };
+                SyndicationFeed syndicationFeed = SyndicationFeed.Load(reader);
+                Feed feed = _syndicationConverter.SyndicationFeedToFeed(syndicationFeed, request.Url);
 
                 CreateFeedCommand createFeedCommand = new()
                 {
@@ -78,22 +75,16 @@ namespace Api.Controllers
                 };
                 CreateFeedCommandResult createFeedCommandResult = await _mediator.Send(createFeedCommand, cancellationToken);
 
-                List<Post> newPosts = new();
-                foreach (SyndicationItem post in rssFeed.Items.Where(i => i.PublishDate.UtcDateTime > createFeedCommandResult.Feed.LastUpdate))
+                List<Post> posts = new();
+                foreach (SyndicationItem syndicationItem in syndicationFeed.Items.Where(i => i.PublishDate.UtcDateTime > createFeedCommandResult.Feed.LastUpdate))
                 {
-                    newPosts.Add(new()
-                    {
-                        Title = post.Title.Text,
-                        Description = post.Summary.Text,
-                        Link = post.Links.FirstOrDefault().Uri.ToString(),
-                        PubDate = post.PublishDate.UtcDateTime
-                    });
+                    posts.Add(_syndicationConverter.SyndicationItemToPost(syndicationItem, createFeedCommandResult.Feed.Id));
                 }
 
                 UpdateFeedPostsCommand updateFeedPostsCommand = new()
                 {
                     Feed = createFeedCommandResult.Feed,
-                    Posts = newPosts.OrderBy(np => np.PubDate).ToList()
+                    Posts = posts.OrderBy(p => p.PubDate).ToList()
                 };
                 UpdateFeedPostsCommandResult updateFeedPostsCommandResult = await _mediator.Send(updateFeedPostsCommand, cancellationToken);
 
@@ -117,13 +108,13 @@ namespace Api.Controllers
                 return BadRequest(Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden);
             }
 
-            GetFeedsQuery getFeedsQuery = new()
+            GetUserFeedsQuery getUserFeedsQuery = new()
             {
                 Username = username
             };
-            GetFeedsQueryResult getFeedsQueryResult = await _mediator.Send(getFeedsQuery, cancellationToken);
+            GetUserFeedsQueryResult getUserFeedsQueryResult = await _mediator.Send(getUserFeedsQuery, cancellationToken);
 
-            return Ok(getFeedsQueryResult.Feeds);
+            return Ok(getUserFeedsQueryResult.Feeds);
         }
 
         [HttpGet("{username}/posts/isunread/{sinceDateRequest}")] // dd-mm-yyyy
@@ -134,6 +125,12 @@ namespace Api.Controllers
             {
                 return BadRequest(Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden);
             }
+
+            GetUserFeedsQuery getUserFeedsQuery = new()
+            {
+                Username = username
+            };
+            GetUserFeedsQueryResult getUserFeedsQueryResult = await _mediator.Send(getUserFeedsQuery, cancellationToken);
 
             string[] date = sinceDateRequest.Split("-");
             int year = Int32.Parse(date[2]);

@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Contracts.Database
 {
-    [Table("tbl_read_messages", Schema = "public")]
+    [Table("tbl_read_posts")]
     public class ReadPost
     {
         [Column("user_id")]

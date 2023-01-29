@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Contracts.Database
 {
-    [Table("tbl_users", Schema = "public")]
+    [Table("tbl_users")]
     public class User
     {
         [Key]

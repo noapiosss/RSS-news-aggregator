@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace domain.Migrations
 {
     [DbContext(typeof(RSSNewsDbContext))]
-    [Migration("20230127153717_Init")]
+    [Migration("20230128235315_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -27,13 +27,38 @@ namespace domain.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("id");
 
+                    b.Property<string>("Author")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("author");
+
+                    b.Property<string>("Category")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("category");
+
+                    b.Property<string>("Copyright")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("copyright");
+
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("description");
+
+                    b.Property<string>("Docs")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("docs");
+
+                    b.Property<string>("Generator")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("generator");
 
                     b.Property<string>("Image")
                         .HasColumnType("TEXT")
                         .HasColumnName("image");
+
+                    b.Property<string>("Language")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("language");
 
                     b.Property<DateTime>("LastUpdate")
                         .HasColumnType("TEXT")
@@ -44,6 +69,34 @@ namespace domain.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("link");
 
+                    b.Property<string>("SkipDays")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("skip_days");
+
+                    b.Property<string>("SkipHours")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("skip_hours");
+
+                    b.Property<string>("TTL")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ttl");
+
+                    b.Property<string>("TextInputDescription")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("text_input_description");
+
+                    b.Property<string>("TextInputLink")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("text_input_link");
+
+                    b.Property<string>("TextInputName")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("text_input_name");
+
+                    b.Property<string>("TextInputTitle")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("text_input_title");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -52,7 +105,7 @@ namespace domain.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("tbl_feeds", "public");
+                    b.ToTable("tbl_feeds");
                 });
 
             modelBuilder.Entity("Contracts.Database.Post", b =>
@@ -62,6 +115,10 @@ namespace domain.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("id");
 
+                    b.Property<string>("Category")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("category");
+
                     b.Property<string>("Description")
                         .HasColumnType("TEXT")
                         .HasColumnName("description");
@@ -70,8 +127,11 @@ namespace domain.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("feed_id");
 
+                    b.Property<string>("GUID")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("guid");
+
                     b.Property<string>("Link")
-                        .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("link");
 
@@ -79,8 +139,11 @@ namespace domain.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("publication_date");
 
+                    b.Property<string>("Source")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("source");
+
                     b.Property<string>("Title")
-                        .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("title");
 
@@ -88,7 +151,7 @@ namespace domain.Migrations
 
                     b.HasIndex("FeedId");
 
-                    b.ToTable("tbl_posts", "public");
+                    b.ToTable("tbl_posts");
                 });
 
             modelBuilder.Entity("Contracts.Database.ReadPost", b =>
@@ -105,7 +168,7 @@ namespace domain.Migrations
 
                     b.HasIndex("PostId");
 
-                    b.ToTable("tbl_read_messages", "public");
+                    b.ToTable("tbl_read_posts");
                 });
 
             modelBuilder.Entity("Contracts.Database.Subscription", b =>
@@ -122,7 +185,7 @@ namespace domain.Migrations
 
                     b.HasIndex("FeedId");
 
-                    b.ToTable("tbl_subscriptions", "public");
+                    b.ToTable("tbl_subscriptions");
                 });
 
             modelBuilder.Entity("Contracts.Database.User", b =>
@@ -151,7 +214,7 @@ namespace domain.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("tbl_users", "public");
+                    b.ToTable("tbl_users");
                 });
 
             modelBuilder.Entity("Contracts.Database.Post", b =>

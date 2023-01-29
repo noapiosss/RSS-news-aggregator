@@ -39,10 +39,9 @@ namespace Domain.Commands
                 };
             }
 
-            foreach (Post newPost in request.Posts)
+            foreach (Post post in request.Posts)
             {
-                newPost.FeedId = request.Feed.Id;
-                _ = await _dbContext.AddAsync(newPost, cancellationToken);
+                _ = await _dbContext.AddAsync(post, cancellationToken);
             }
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
 

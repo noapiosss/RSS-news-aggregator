@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Contracts.Database
 {
-    [Table("tbl_posts", Schema = "public")]
+    [Table("tbl_posts")]
     public class Post
     {
         [Key]
@@ -13,19 +13,26 @@ namespace Contracts.Database
         [Column("id")]
         public int Id { get; set; }
 
-        [Required]
         [Column("title")]
         public string Title { get; set; }
 
         [Column("description")]
         public string Description { get; set; }
 
-        [Required]
-        [Column("link")]
-        public string Link { get; set; }
-
         [Column("publication_date")]
         public DateTime PubDate { get; set; }
+
+        [Column("category")]
+        public string Category { get; set; }
+
+        [Column("guid")]
+        public string GUID { get; set; }
+
+        [Column("source")]
+        public string Source { get; set; }
+
+        [Column("link")]
+        public string Link { get; set; }
 
         [Column("feed_id")]
         public int FeedId { get; set; }
