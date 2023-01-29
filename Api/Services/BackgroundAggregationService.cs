@@ -6,11 +6,11 @@ using Microsoft.Extensions.Hosting;
 
 namespace Api.Services
 {
-    public class BackgroundAggregation : BackgroundService
+    public class BackgroundAggregationService : BackgroundService
     {
         private readonly IAggregator _aggregator;
 
-        public BackgroundAggregation(IAggregator aggregator)
+        public BackgroundAggregationService(IAggregator aggregator)
         {
             _aggregator = aggregator;
         }

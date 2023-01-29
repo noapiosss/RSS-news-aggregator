@@ -40,7 +40,7 @@ builder.Services.AddDomainServices((sp, options) =>
 
 
 builder.Services.AddSingleton<IAggregator, Aggregator>();
-builder.Services.AddHostedService<BackgroundAggregation>();
+builder.Services.AddHostedService<BackgroundAggregationService>();
 
 WebApplication app = builder.Build();
 
