@@ -20,7 +20,7 @@ namespace Api.Services
             while (!stoppingToken.IsCancellationRequested)
             {
                 await _aggregator.AggregateAsync();
-                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                await Task.Delay(TimeSpan.FromHours(1), stoppingToken); // rework to set correct time (at the beginning of every hour)
             }
         }
     }
