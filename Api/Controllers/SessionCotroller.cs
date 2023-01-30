@@ -7,8 +7,6 @@ using Domain.Queries;
 using FluentValidation;
 using FluentValidation.Results;
 using MediatR;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -94,13 +92,6 @@ namespace Api.Controllers
                 return Ok(token);
 
             }, cancellationToken);
-        }
-
-        [HttpGet("sign-out")]
-        public async Task<IActionResult> SignOut(CancellationToken cancellationToken)
-        {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return Ok();
         }
     }
 }
