@@ -12,6 +12,7 @@ using Domain.Queries;
 using Domain.Commands;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Api.Services
 {
@@ -19,11 +20,13 @@ namespace Api.Services
     {
         private readonly ISyndicationConverter _syndicationConverter;
         private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly ILogger<Aggregator> _logger;
 
-        public Aggregator(ISyndicationConverter syndicationConverter, IServiceScopeFactory serviceScopeFactory)
+        public Aggregator(ISyndicationConverter syndicationConverter, IServiceScopeFactory serviceScopeFactory, ILogger<Aggregator> logger)
         {
             _serviceScopeFactory = serviceScopeFactory;
             _syndicationConverter = syndicationConverter;
+            _logger = logger;
         }
 
         public async Task AggregateAsync(CancellationToken cancellationToken)
@@ -33,6 +36,8 @@ namespace Api.Services
 
             GetAllFeedsQuery getAllFeedsQuery = new() { };
             GetAllFeedsQueryResult getAllFeedsQueryResult = await mediator.Send(getAllFeedsQuery, cancellationToken);
+
+            _logger.LogInformation("Updating feeds started")
 
             foreach (Feed feed in getAllFeedsQueryResult.Feeds)
             {
@@ -57,12 +62,16 @@ namespace Api.Services
                 };
                 _ = await mediator.Send(updateFeedPostsCommand, cancellationToken);
             }
+
+            _logger.LogInformation("Updating feeds ended")
         }
 
         public async Task DeleteSubscriblessFeed(CancellationToken cancellationToken)
         {
             using IServiceScope scope = _serviceScopeFactory.CreateScope();
             IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+
+            _logger.LogInformation("Removing subscribless feeds started")
 
             GetSubscriblessFeedsQuery getSubscriblessFeedsQuery = new();
             GetSubscriblessFeedsQueryResult getSubscriblessFeedsQueryResult = await mediator.Send(getSubscriblessFeedsQuery, cancellationToken);
@@ -74,6 +83,8 @@ namespace Api.Services
                 };
                 _ = await mediator.Send(deleteFeedCommand, cancellationToken);
             }
+
+            _logger.LogInformation("Removing subscribless feeds ended")
         }
     }
 }
