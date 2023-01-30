@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Api.Controllers
 {
+    [Route("api/session")]
     public class SessionCotroller : BaseCotroller
     {
         private readonly IMediator _mediator;
@@ -28,6 +29,15 @@ namespace Api.Controllers
             _tokenHandler = tokenHandler;
         }
 
+
+        /// <summary>
+        /// Create account
+        /// </summary>
+        /// <returns>Registration result</returns>
+        /// <response code="200">Registration was successful message</response>
+        /// <response code="400">Not valid input</response>
+        /// <response code="409">Input already in use</response>
+        /// <response code="500">Internal Server Error</response>
         [HttpPut("sign-up")]
         public Task<IActionResult> SignUp([FromBody] SignUpRequest request, CancellationToken cancellationToken)
         {
@@ -61,6 +71,14 @@ namespace Api.Controllers
             }, cancellationToken);
         }
 
+        /// <summary>
+        /// Sign-in request
+        /// </summary>
+        /// <returns>Registration result</returns>
+        /// <response code="200">Return token</response>
+        /// <response code="400">Invalid input</response>
+        /// <response code="403">Forbidden</response>
+        /// <response code="500">Internal Server Error</response>
         [HttpPost("sign-in")]
         public Task<IActionResult> SignIn([FromBody] SignInRequest request, CancellationToken cancellationToken)
         {

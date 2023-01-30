@@ -3,17 +3,26 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using Api.Configuration;
 using Api.Services.Interfaces;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Api.Services
 {
     public class TokenHandler : ITokenHandler
     {
+        private readonly string _sercret;
+
+        public TokenHandler(IOptionsMonitor<AppConfiguration> appConfiguration)
+        {
+            _sercret = appConfiguration.CurrentValue.Secret;
+        }
+
         public bool Validate(string token, out string username)
         {
             JwtSecurityTokenHandler tokenHandler = new();
-            SymmetricSecurityKey key = new(System.Text.Encoding.UTF8.GetBytes("Smiley face with small eyes"));
+            SymmetricSecurityKey key = new(System.Text.Encoding.UTF8.GetBytes(_sercret));
 
             try
             {
@@ -44,7 +53,7 @@ namespace Api.Services
                 new Claim(ClaimTypes.Name, username)
             };
 
-            SymmetricSecurityKey key = new(System.Text.Encoding.UTF8.GetBytes("Smiley face with small eyes"));
+            SymmetricSecurityKey key = new(System.Text.Encoding.UTF8.GetBytes(_sercret));
             SigningCredentials cred = new(key, SecurityAlgorithms.HmacSha256Signature);
             JwtSecurityToken token = new(
                 claims: claims,

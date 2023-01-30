@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+using System.Reflection;
 using Api.Configuration;
 using Api.Helpers;
 using Api.Helpers.Interfaces;
@@ -15,6 +18,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Serilog;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -31,7 +35,20 @@ builder.Services.AddControllersWithViews()
     .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Version = "v1",
+        Title = "RSSNewsReader API",
+        Description = "Web API for following all your RSS feed in one place"
+    });
+
+    string xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+});
+
+builder.Services.AddSingleton<ISyndicationConverter, SyndicationConverter>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(
@@ -41,7 +58,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             options.IncludeErrorDetails = true;
             options.TokenValidationParameters = new()
             {
-                IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF32.GetBytes("Smiley face with small eyes")),
+                IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF32.GetBytes(builder.Configuration["Secret"])),
                 ValidAudience = "http://localhost:5000/",
                 ValidIssuer = "http://localhost:5000/",
                 RequireExpirationTime = true,
@@ -52,9 +69,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             };
         }
     );
-builder.Services.AddAuthorization();
 
-builder.Services.AddSingleton<ISyndicationConverter, SyndicationConverter>();
+builder.Services.AddAuthorization();
 
 builder.Services.Configure<AppConfiguration>(builder.Configuration);
 
@@ -82,8 +98,6 @@ if (app.Environment.IsDevelopment())
     _ = app.UseSwagger();
     _ = app.UseSwaggerUI();
 }
-
-app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 

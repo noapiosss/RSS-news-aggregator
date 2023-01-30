@@ -34,6 +34,13 @@ namespace Api.Controllers
             _tokenHandler = tokenHandler;
         }
 
+        /// <summary>
+        /// Subscribe to feed
+        /// </summary>
+        /// <returns>Feed</returns>
+        /// <response code="200">Return feed in json fromat</response>
+        /// <response code="401">Unauthorized</response>
+        /// <response code="500">Internal Server Error</response>
         [HttpPut("{token}/feeds")]
         public Task<IActionResult> AddFeed([FromRoute] string token, [FromBody] AddFeedRequest request, CancellationToken cancellationToken)
         {
@@ -80,6 +87,8 @@ namespace Api.Controllers
                         Feed = createFeedCommandResult.Feed
                     };
                     SubscribeToFeedCommandResult result = await _mediator.Send(subscribeToFeedCommand, cancellationToken);
+
+                    return Ok(createFeedCommandResult.Feed);
                 }
                 catch
                 {
@@ -89,11 +98,16 @@ namespace Api.Controllers
                         Message = "Invalid url"
                     });
                 }
-
-                return Ok();
             }, cancellationToken);
         }
 
+        /// <summary>
+        /// Return channels you've subscribed to
+        /// </summary>
+        /// <returns>List of feeds</returns>
+        /// <response code="200">Return feeds in json fromat</response>
+        /// <response code="401">Unauthorized</response>
+        /// <response code="500">Internal Server Error</response>
         [HttpGet("{token}/feeds")]
         public Task<IActionResult> GetFeeds([FromRoute] string token, CancellationToken cancellationToken)
         {
@@ -118,7 +132,18 @@ namespace Api.Controllers
             }, cancellationToken);
         }
 
-        [HttpGet("{token}/posts/isunread/{sinceDateRequest}")] // dd-mm-yyyy
+        /// <summary>
+        /// Return unread posts since the inputted date
+        /// </summary>
+        /// <returns>List of posts</returns>
+        /// <param name="token"></param>
+        /// <param name="sinceDateRequest">Should be in format dd-mm-yyyy</param>
+        /// <param name="cancellationToken"></param>
+        /// <response code="200">Return psots in json fromat</response>
+        /// <response code="400">Invalid input</response>
+        /// <response code="401">Unauthorized</response>
+        /// <response code="500">Internal Server Error</response>
+        [HttpGet("{token}/posts/isunread/{sinceDateRequest}")]
         public Task<IActionResult> GetUnreadPostsSinceDate([FromRoute] string token, string sinceDateRequest, CancellationToken cancellationToken)
         {
             return SafeExecute(async () =>
@@ -152,6 +177,14 @@ namespace Api.Controllers
             }, cancellationToken);
         }
 
+        /// <summary>
+        /// Mark post as read by postId
+        /// </summary>
+        /// <returns>Request result</returns>
+        /// <response code="200">Request status</response>
+        /// <response code="403">Post not fount</response>
+        /// <response code="401">Unauthorized</response>
+        /// <response code="500">Internal Server Error</response>
         [HttpPut("{token}/posts/isread")]
         public Task<IActionResult> MarkAsReadById([FromRoute] string token, [FromBody] int postId, CancellationToken cancellationToken)
         {
