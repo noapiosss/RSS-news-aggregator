@@ -1,171 +1,180 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Claims;
 using System.ServiceModel.Syndication;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
-using Api.Helpers;
 using Api.Helpers.Interfaces;
 using Contracts.Database;
 using Contracts.Http;
-using domain.Queries;
+using Domain.Queries;
 using Domain.Commands;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using FluentValidation;
+using Api.Services.Interfaces;
 
 namespace Api.Controllers
 {
     [Route("api/users")]
-    public class UserController : ControllerBase
+    public class UserController : BaseCotroller
     {
         private readonly IMediator _mediator;
         private readonly ISyndicationConverter _syndicationConverter;
-        public UserController(IMediator mediator, ISyndicationConverter syndicationConverter)
+        private readonly ITokenHandler _tokenHandler;
+        public UserController(IMediator mediator,
+            ISyndicationConverter syndicationConverter,
+            ITokenHandler tokenHandler,
+            ILogger<UserController> logger) : base(logger)
         {
             _mediator = mediator;
             _syndicationConverter = syndicationConverter;
+            _tokenHandler = tokenHandler;
         }
 
-        [HttpPut]
-        public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
+        [HttpPut("{token}/feeds")]
+        public Task<IActionResult> AddFeed([FromRoute] string token, [FromBody] AddFeedRequest request, CancellationToken cancellationToken)
         {
-            CreateUserCommand command = new()
+            return SafeExecute(async () =>
             {
-                Username = request.Username,
-                Email = request.Email,
-                Password = request.Password
-            };
-
-            CreateUserCommandResult result = await _mediator.Send(command, cancellationToken);
-
-            if (!result.IsRegistrationSuccessful)
-            {
-                return BadRequest(Microsoft.AspNetCore.Http.StatusCodes.Status400BadRequest); // handle
-            }
-
-            CreateUserResponse response = new()
-            {
-                IsRegistrationSuccessful = result.IsRegistrationSuccessful,
-                UsernameIsAlreadyInUse = result.UsernameIsAlreadyInUse,
-                EmailIsAlreadyInUse = result.EmailIsAlreadyInUse
-            };
-
-            return Ok(response);
-        }
-
-        [HttpPut("{username}/feeds")]
-        public async Task<IActionResult> AddFeed([FromRoute] string username, [FromBody] AddFeedRequest request, CancellationToken cancellationToken)
-        {
-            if (HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name) == null ||
-                HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name).Value != username)
-            {
-                return BadRequest(Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden);
-            }
-
-            using (XmlReader reader = XmlReader.Create(request.Url))
-            {
-                SyndicationFeed syndicationFeed = SyndicationFeed.Load(reader);
-                Feed feed = _syndicationConverter.SyndicationFeedToFeed(syndicationFeed, request.Url);
-
-                CreateFeedCommand createFeedCommand = new()
+                if (!_tokenHandler.Validate(token, out string username))
                 {
-                    Feed = feed
-                };
-                CreateFeedCommandResult createFeedCommandResult = await _mediator.Send(createFeedCommand, cancellationToken);
-
-                List<Post> posts = new();
-                foreach (SyndicationItem syndicationItem in syndicationFeed.Items.Where(i => i.PublishDate.UtcDateTime > createFeedCommandResult.Feed.LastUpdate))
-                {
-                    posts.Add(_syndicationConverter.SyndicationItemToPost(syndicationItem, createFeedCommandResult.Feed.Id));
+                    return ToActionResult(new()
+                    {
+                        Code = ErrorCode.Unauthorized,
+                        Message = "Unauthorized"
+                    });
                 }
 
-                UpdateFeedPostsCommand updateFeedPostsCommand = new()
+                try
                 {
-                    Feed = createFeedCommandResult.Feed,
-                    Posts = posts.OrderBy(p => p.PubDate).ToList()
-                };
-                UpdateFeedPostsCommandResult updateFeedPostsCommandResult = await _mediator.Send(updateFeedPostsCommand, cancellationToken);
+                    using XmlReader reader = XmlReader.Create(request.Url);
+                    SyndicationFeed syndicationFeed = SyndicationFeed.Load(reader);
 
-                SubscribeToFeedCommand subscribeToFeedCommand = new()
+                    Feed feed = _syndicationConverter.SyndicationFeedToFeed(syndicationFeed, request.Url);
+
+                    CreateFeedCommand createFeedCommand = new()
+                    {
+                        Feed = feed
+                    };
+                    CreateFeedCommandResult createFeedCommandResult = await _mediator.Send(createFeedCommand, cancellationToken);
+
+                    List<Post> posts = new();
+                    foreach (SyndicationItem syndicationItem in syndicationFeed.Items.Where(i => i.PublishDate.UtcDateTime > createFeedCommandResult.Feed.LastUpdate))
+                    {
+                        posts.Add(_syndicationConverter.SyndicationItemToPost(syndicationItem, createFeedCommandResult.Feed.Id));
+                    }
+
+                    UpdateFeedPostsCommand updateFeedPostsCommand = new()
+                    {
+                        FeedId = createFeedCommandResult.Feed.Id,
+                        Posts = posts.OrderBy(p => p.PubDate).ToList()
+                    };
+                    UpdateFeedPostsCommandResult updateFeedPostsCommandResult = await _mediator.Send(updateFeedPostsCommand, cancellationToken);
+
+                    SubscribeToFeedCommand subscribeToFeedCommand = new()
+                    {
+                        Username = username,
+                        Feed = createFeedCommandResult.Feed
+                    };
+                    SubscribeToFeedCommandResult result = await _mediator.Send(subscribeToFeedCommand, cancellationToken);
+                }
+                catch
+                {
+                    return ToActionResult(new()
+                    {
+                        Code = ErrorCode.BadRequest,
+                        Message = "Invalid url"
+                    });
+                }
+
+                return Ok();
+            }, cancellationToken);
+        }
+
+        [HttpGet("{token}/feeds")]
+        public Task<IActionResult> GetFeeds([FromRoute] string token, CancellationToken cancellationToken)
+        {
+            return SafeExecute(async () =>
+            {
+                if (!_tokenHandler.Validate(token, out string username))
+                {
+                    return ToActionResult(new()
+                    {
+                        Code = ErrorCode.Unauthorized,
+                        Message = "Unauthorized"
+                    });
+                }
+
+                GetUserFeedsQuery getUserFeedsQuery = new()
+                {
+                    Username = username
+                };
+                GetUserFeedsQueryResult getUserFeedsQueryResult = await _mediator.Send(getUserFeedsQuery, cancellationToken);
+
+                return Ok(getUserFeedsQueryResult.Feeds);
+            }, cancellationToken);
+        }
+
+        [HttpGet("{token}/posts/isunread/{sinceDateRequest}")] // dd-mm-yyyy
+        public Task<IActionResult> GetUnreadPostsSinceDate([FromRoute] string token, string sinceDateRequest, CancellationToken cancellationToken)
+        {
+            return SafeExecute(async () =>
+            {
+                if (!_tokenHandler.Validate(token, out string username))
+                {
+                    return ToActionResult(new()
+                    {
+                        Code = ErrorCode.Unauthorized,
+                        Message = "Unauthorized"
+                    });
+                }
+
+                if (!DateTime.TryParse(sinceDateRequest, out DateTime sinceDate))
+                {
+                    return ToActionResult(new()
+                    {
+                        Code = ErrorCode.BadRequest,
+                        Message = "Invalid date format"
+                    });
+                }
+
+                GetUnreadPostsSinceDateQuery getUnreadPostsSinceDateQuery = new()
                 {
                     Username = username,
-                    Feed = createFeedCommandResult.Feed
+                    SinceDate = sinceDate
                 };
-                SubscribeToFeedCommandResult result = await _mediator.Send(subscribeToFeedCommand, cancellationToken);
-            }
+                GetUnreadPostsSinceDateQueryResult getUnreadPostsSinceDateQueryResult = await _mediator.Send(getUnreadPostsSinceDateQuery, cancellationToken);
 
-            return Ok();
+                return Ok(getUnreadPostsSinceDateQueryResult.Posts);
+            }, cancellationToken);
         }
 
-        [HttpGet("{username}/feeds")]
-        public async Task<IActionResult> GetFeeds([FromRoute] string username, CancellationToken cancellationToken)
+        [HttpPut("{token}/posts/isread")]
+        public Task<IActionResult> MarkAsReadById([FromRoute] string token, [FromBody] int postId, CancellationToken cancellationToken)
         {
-            if (HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name) == null ||
-                HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name).Value != username)
+            return SafeExecute(async () =>
             {
-                return BadRequest(Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden);
-            }
+                if (!_tokenHandler.Validate(token, out string username))
+                {
+                    return ToActionResult(new()
+                    {
+                        Code = ErrorCode.Unauthorized,
+                        Message = "Unauthorized"
+                    });
+                }
 
-            GetUserFeedsQuery getUserFeedsQuery = new()
-            {
-                Username = username
-            };
-            GetUserFeedsQueryResult getUserFeedsQueryResult = await _mediator.Send(getUserFeedsQuery, cancellationToken);
+                MarkAsReadByIdCommand markAsReadByIdCommand = new()
+                {
+                    Username = username,
+                    PostId = postId
+                };
+                MarkAsReadByIdCommandResult markAsReadByIdCommandResult = await _mediator.Send(markAsReadByIdCommand, cancellationToken);
 
-            return Ok(getUserFeedsQueryResult.Feeds);
-        }
-
-        [HttpGet("{username}/posts/isunread/{sinceDateRequest}")] // dd-mm-yyyy
-        public async Task<IActionResult> GetUnreadPostsSinceDate([FromRoute] string username, string sinceDateRequest, CancellationToken cancellationToken)
-        {
-            if (HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name) == null ||
-                HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name).Value != username)
-            {
-                return BadRequest(Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden);
-            }
-
-            GetUserFeedsQuery getUserFeedsQuery = new()
-            {
-                Username = username
-            };
-            GetUserFeedsQueryResult getUserFeedsQueryResult = await _mediator.Send(getUserFeedsQuery, cancellationToken);
-
-            string[] date = sinceDateRequest.Split("-");
-            int year = Int32.Parse(date[2]);
-            int month = Int32.Parse(date[1]);
-            int day = Int32.Parse(date[0]);
-
-            DateTime sinceDate = new(year, month, day);
-
-            GetUnreadPostsSinceDateQuery getUnreadPostsSinceDateQuery = new()
-            {
-                Username = username,
-                SinceDate = sinceDate
-            };
-            GetUnreadPostsSinceDateQueryResult getUnreadPostsSinceDateQueryResult = await _mediator.Send(getUnreadPostsSinceDateQuery, cancellationToken);
-
-            return Ok(getUnreadPostsSinceDateQueryResult.Posts);
-        }
-        
-        [HttpPut("{username}/posts/isread")]
-        public async Task<IActionResult> MarkAsReadById([FromRoute] string username, [FromBody] int postId, CancellationToken cancellationToken)
-        {
-            if (HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name) == null ||
-                HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name).Value != username)
-            {
-                return BadRequest(Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden);
-            }
-
-            MarkAsReadByIdCommand markAsReadByIdCommand = new()
-            {
-                Username = username,
-                PostId = postId
-            };
-            MarkAsReadByIdCommandResult markAsReadByIdCommandResult = await _mediator.Send(markAsReadByIdCommand, cancellationToken);
-
-            return Ok(markAsReadByIdCommandResult.IsRead);
+                return Ok(markAsReadByIdCommandResult.IsRead);
+            }, cancellationToken);
         }
     }
 }

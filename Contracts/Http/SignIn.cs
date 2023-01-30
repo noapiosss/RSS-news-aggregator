@@ -13,8 +13,6 @@ namespace Contracts.Http
 
     public class SignInResponse
     {
-        public bool SignInIsSuccessful { get; set; }
-        public bool LoginExists { get; set; }
-        public bool PasswordIsCorrect { get; set; }
+        public bool IsAuthenticated { get; set; }
     }
 }

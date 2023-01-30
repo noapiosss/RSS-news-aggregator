@@ -5,8 +5,12 @@ using Contracts.Database;
 using Domain.Database;
 using Domain.Helpers.Interfaces;
 using MediatR;
+using Domain.Base;
+using Domain.Excetions;
+using Contracts.Http;
+using Microsoft.Extensions.Logging;
 
-namespace domain.Queries
+namespace Domain.Queries
 {
     public class SignInQuery : IRequest<SignInQueryResult>
     {
@@ -16,45 +20,29 @@ namespace domain.Queries
 
     public class SignInQueryResult
     {
-        public bool SignInIsSuccessful { get; set; }
-        public bool LoginExists { get; set; }
-        public bool PasswordIsCorrect { get; set; }
+        public bool IsAuthenticated { get; set; }
     }
 
-    internal class SignInQueryHandler : IRequestHandler<SignInQuery, SignInQueryResult>
+    internal class SignInQueryHandler : BaseHandler<SignInQuery, SignInQueryResult>
     {
         private readonly RSSNewsDbContext _dbContext;
         private readonly IPasswordHelper _passwordHelper;
 
-        public SignInQueryHandler(RSSNewsDbContext dbContext, IPasswordHelper passwordHelper)
+        public SignInQueryHandler(RSSNewsDbContext dbContext, IPasswordHelper passwordHelper, ILogger<SignInQuery> logger) : base(logger)
         {
             _dbContext = dbContext;
             _passwordHelper = passwordHelper;
         }
 
-        public async Task<SignInQueryResult> Handle(SignInQuery request, CancellationToken cancellationToken = default)
+        protected override async Task<SignInQueryResult> HandleInternal(SignInQuery request, CancellationToken cancellationToken = default)
         {
             User user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Username, cancellationToken);
 
-            return user == null
-                ? (new()
-                {
-                    SignInIsSuccessful = false,
-                    LoginExists = false,
-                    PasswordIsCorrect = false
-                })
-                : _passwordHelper.GetSHA256(request.Password) != user.Password
-                ? (new()
-                {
-                    SignInIsSuccessful = false,
-                    LoginExists = true,
-                    PasswordIsCorrect = false
-                })
+            return user == null ? throw new RSSNewsReaderException(ErrorCode.UserNotFound, $"User '{request.Username}' not found")
+                : _passwordHelper.GetSHA256(request.Password) != user.Password ? throw new RSSNewsReaderException(ErrorCode.WrongPassword, $"Wrong password")
                 : (new()
                 {
-                    SignInIsSuccessful = true,
-                    LoginExists = true,
-                    PasswordIsCorrect = true
+                    IsAuthenticated = true
                 });
         }
     }

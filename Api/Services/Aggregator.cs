@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel.Syndication;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using Api.Helpers.Interfaces;
 using Api.Services.Interfaces;
 using Contracts.Database;
-using domain.Queries;
+using Domain.Queries;
 using Domain.Commands;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +17,6 @@ namespace Api.Services
 {
     public class Aggregator : IAggregator
     {
-        //private readonly IMediator _mediator;
         private readonly ISyndicationConverter _syndicationConverter;
         private readonly IServiceScopeFactory _serviceScopeFactory;
 
@@ -26,13 +26,13 @@ namespace Api.Services
             _syndicationConverter = syndicationConverter;
         }
 
-        public async Task AggregateAsync()
+        public async Task AggregateAsync(CancellationToken cancellationToken)
         {
             using IServiceScope scope = _serviceScopeFactory.CreateScope();
             IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
             GetAllFeedsQuery getAllFeedsQuery = new() { };
-            GetAllFeedsQueryResult getAllFeedsQueryResult = await mediator.Send(getAllFeedsQuery);
+            GetAllFeedsQueryResult getAllFeedsQueryResult = await mediator.Send(getAllFeedsQuery, cancellationToken);
 
             foreach (Feed feed in getAllFeedsQueryResult.Feeds)
             {
@@ -52,10 +52,27 @@ namespace Api.Services
 
                 UpdateFeedPostsCommand updateFeedPostsCommand = new()
                 {
-                    Feed = feed,
+                    FeedId = feed.Id,
                     Posts = newPosts.OrderBy(p => p.PubDate).ToList()
                 };
-                _ = await mediator.Send(updateFeedPostsCommand);
+                _ = await mediator.Send(updateFeedPostsCommand, cancellationToken);
+            }
+        }
+
+        public async Task DeleteSubscriblessFeed(CancellationToken cancellationToken)
+        {
+            using IServiceScope scope = _serviceScopeFactory.CreateScope();
+            IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+
+            GetSubscriblessFeedsQuery getSubscriblessFeedsQuery = new();
+            GetSubscriblessFeedsQueryResult getSubscriblessFeedsQueryResult = await mediator.Send(getSubscriblessFeedsQuery, cancellationToken);
+            foreach (Feed feed in getSubscriblessFeedsQueryResult.Feeds)
+            {
+                DeleteFeedCommand deleteFeedCommand = new()
+                {
+                    FeedId = feed.Id
+                };
+                _ = await mediator.Send(deleteFeedCommand, cancellationToken);
             }
         }
     }

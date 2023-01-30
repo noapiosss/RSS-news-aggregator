@@ -19,8 +19,12 @@ namespace Api.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                await _aggregator.AggregateAsync();
-                await Task.Delay(TimeSpan.FromHours(1), stoppingToken); // rework to set correct time (at the beginning of every hour)
+                DateTime nextUpdateTime = DateTime.Now.AddHours(1);
+                nextUpdateTime = nextUpdateTime.AddMinutes(-nextUpdateTime.Minute + 1);
+
+                await Task.Delay(nextUpdateTime - DateTime.Now, stoppingToken);
+                await _aggregator.DeleteSubscriblessFeed(stoppingToken);
+                await _aggregator.AggregateAsync(stoppingToken);
             }
         }
     }

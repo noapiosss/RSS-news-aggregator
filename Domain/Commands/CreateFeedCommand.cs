@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using Contracts.Database;
 using Domain.Database;
 using MediatR;
+using Domain.Base;
+using Microsoft.Extensions.Logging;
 
 namespace Domain.Commands
 {
@@ -17,20 +19,19 @@ namespace Domain.Commands
         public Feed Feed { get; set; }
     }
 
-    internal class CreateFeedCommandHandler : IRequestHandler<CreateFeedCommand, CreateFeedCommandResult>
+    internal class CreateFeedCommandHandler : BaseHandler<CreateFeedCommand, CreateFeedCommandResult>
     {
         private readonly RSSNewsDbContext _dbContext;
 
-        public CreateFeedCommandHandler(RSSNewsDbContext dbContext)
+        public CreateFeedCommandHandler(RSSNewsDbContext dbContext, ILogger<CreateFeedCommandHandler> logger) : base(logger)
         {
             _dbContext = dbContext;
         }
 
-        public async Task<CreateFeedCommandResult> Handle(CreateFeedCommand request, CancellationToken cancellationToken)
+        protected override async Task<CreateFeedCommandResult> HandleInternal(CreateFeedCommand request, CancellationToken cancellationToken)
         {
             Feed feed = await _dbContext.Feeds.FirstOrDefaultAsync(f => f.Link == request.Feed.Link, cancellationToken: cancellationToken);
 
-            //check if user exists
             if (feed != null)
             {
                 return new()

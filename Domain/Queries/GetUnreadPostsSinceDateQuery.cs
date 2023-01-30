@@ -7,8 +7,12 @@ using Contracts.Database;
 using Domain.Database;
 using MediatR;
 using System.Linq;
+using Domain.Base;
+using Microsoft.Extensions.Logging;
+using Domain.Excetions;
+using Contracts.Http;
 
-namespace domain.Queries
+namespace Domain.Queries
 {
     public class GetUnreadPostsSinceDateQuery : IRequest<GetUnreadPostsSinceDateQueryResult>
     {
@@ -21,25 +25,22 @@ namespace domain.Queries
         public ICollection<Post> Posts { get; set; }
     }
 
-    internal class GetUnreadPostsSinceDateQueryHandler : IRequestHandler<GetUnreadPostsSinceDateQuery, GetUnreadPostsSinceDateQueryResult>
+    internal class GetUnreadPostsSinceDateQueryHandler : BaseHandler<GetUnreadPostsSinceDateQuery, GetUnreadPostsSinceDateQueryResult>
     {
         private readonly RSSNewsDbContext _dbContext;
 
-        public GetUnreadPostsSinceDateQueryHandler(RSSNewsDbContext dbContext)
+        public GetUnreadPostsSinceDateQueryHandler(RSSNewsDbContext dbContext, ILogger<GetUnreadPostsSinceDateQueryHandler> logger) : base(logger)
         {
             _dbContext = dbContext;
         }
 
-        public async Task<GetUnreadPostsSinceDateQueryResult> Handle(GetUnreadPostsSinceDateQuery request, CancellationToken cancellationToken)
+        protected override async Task<GetUnreadPostsSinceDateQueryResult> HandleInternal(GetUnreadPostsSinceDateQuery request, CancellationToken cancellationToken)
         {
             User user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Username, cancellationToken);
 
             if (user == null)
             {
-                return new()
-                {
-                    Posts = new List<Post>()
-                };
+                throw new RSSNewsReaderException(ErrorCode.UserNotFound, $"User '{request.Username}' not found");
             }
 
             IQueryable<int> subscriptionIds = _dbContext.Subscriptions
@@ -49,7 +50,7 @@ namespace domain.Queries
                 .Select(f => f.Id);
 
             List<Post> subscriptionPosts = await _dbContext.Posts
-                .Where(p => subscriptionIds.Contains(p.FeedId))
+                .Where(p => subscriptionIds.Contains(p.FeedId) && p.PubDate > request.SinceDate)
                 .ToListAsync(cancellationToken);
 
             List<Post> readPosts = await _dbContext.ReadPosts

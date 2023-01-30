@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Contracts.Http
 {
-    public class CreateUserRequest
+    public class SignUpRequest
     {
         [Required]
         [MaxLength(50)]
@@ -15,10 +15,8 @@ namespace Contracts.Http
         public string Password { get; init; }
     }
 
-    public class CreateUserResponse
+    public class SignUpResponse
     {
-        public bool IsRegistrationSuccessful { get; set; }
-        public bool UsernameIsAlreadyInUse { get; set; }
-        public bool EmailIsAlreadyInUse { get; set; }
+        public bool RegistrationIsSuccessful { get; set; }
     }
 }

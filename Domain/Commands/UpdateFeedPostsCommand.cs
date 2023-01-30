@@ -6,12 +6,16 @@ using MediatR;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using Domain.Base;
+using Microsoft.Extensions.Logging;
+using Domain.Excetions;
+using Contracts.Http;
 
 namespace Domain.Commands
 {
     public class UpdateFeedPostsCommand : IRequest<UpdateFeedPostsCommandResult>
     {
-        public Feed Feed { get; set; }
+        public int FeedId { get; set; }
         public ICollection<Post> Posts { get; set; }
     }
 
@@ -20,22 +24,29 @@ namespace Domain.Commands
         public Feed Feed { get; set; }
     }
 
-    internal class UpdateFeedPostsCommandHandler : IRequestHandler<UpdateFeedPostsCommand, UpdateFeedPostsCommandResult>
+    internal class UpdateFeedPostsCommandHandler : BaseHandler<UpdateFeedPostsCommand, UpdateFeedPostsCommandResult>
     {
         private readonly RSSNewsDbContext _dbContext;
 
-        public UpdateFeedPostsCommandHandler(RSSNewsDbContext dbContext)
+        public UpdateFeedPostsCommandHandler(RSSNewsDbContext dbContext, ILogger<UpdateFeedPostsCommandHandler> logger) : base(logger)
         {
             _dbContext = dbContext;
         }
 
-        public async Task<UpdateFeedPostsCommandResult> Handle(UpdateFeedPostsCommand request, CancellationToken cancellationToken)
+        protected override async Task<UpdateFeedPostsCommandResult> HandleInternal(UpdateFeedPostsCommand request, CancellationToken cancellationToken)
         {
+            Feed feed = await _dbContext.Feeds.FirstOrDefaultAsync(f => f.Id == request.FeedId, cancellationToken);
+
+            if (feed == null)
+            {
+                throw new RSSNewsReaderException(ErrorCode.FeedNotFound, $"Feed with id '{request.FeedId}' not found");
+            }
+
             if (request.Posts.Count == 0)
             {
                 return new()
                 {
-                    Feed = request.Feed
+                    Feed = feed
                 };
             }
 
@@ -45,7 +56,6 @@ namespace Domain.Commands
             }
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
-            Feed feed = await _dbContext.Feeds.FirstOrDefaultAsync(f => f.Id == request.Feed.Id, cancellationToken);
             feed.LastUpdate = request.Posts.MaxBy(p => p.PubDate).PubDate;
             _ = _dbContext.Feeds.Update(feed);
             _ = await _dbContext.SaveChangesAsync(cancellationToken);

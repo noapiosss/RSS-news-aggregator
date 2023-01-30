@@ -4,6 +4,10 @@ using System.Threading.Tasks;
 using Contracts.Database;
 using Domain.Database;
 using MediatR;
+using Domain.Base;
+using Microsoft.Extensions.Logging;
+using Domain.Excetions;
+using Contracts.Http;
 
 namespace Domain.Commands
 {
@@ -18,27 +22,29 @@ namespace Domain.Commands
         public bool IsRead { get; set; }
     }
 
-    internal class MarkAsReadByIdCommandHandler : IRequestHandler<MarkAsReadByIdCommand, MarkAsReadByIdCommandResult>
+    internal class MarkAsReadByIdCommandHandler : BaseHandler<MarkAsReadByIdCommand, MarkAsReadByIdCommandResult>
     {
         private readonly RSSNewsDbContext _dbContext;
 
-        public MarkAsReadByIdCommandHandler(RSSNewsDbContext dbContext)
+        public MarkAsReadByIdCommandHandler(RSSNewsDbContext dbContext, ILogger<MarkAsReadByIdCommandHandler> logger) : base(logger)
         {
             _dbContext = dbContext;
         }
 
-        public async Task<MarkAsReadByIdCommandResult> Handle(MarkAsReadByIdCommand request, CancellationToken cancellationToken)
+        protected override async Task<MarkAsReadByIdCommandResult> HandleInternal(MarkAsReadByIdCommand request, CancellationToken cancellationToken)
         {
             User user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Username, cancellationToken);
             Post post = await _dbContext.Posts.FirstOrDefaultAsync(p => p.Id == request.PostId, cancellationToken);
 
-            if (user == null || post == null)
+            if (user == null)
             {
-                return new()
-                {
-                    IsRead = false
-                };
-            };
+                throw new RSSNewsReaderException(ErrorCode.UserNotFound, $"User '{request.Username}' not found");
+            }
+
+            if (post == null)
+            {
+                throw new RSSNewsReaderException(ErrorCode.PostNotFound, $"Post with id '{request.PostId}' not found");
+            }
 
             if (await _dbContext.ReadPosts.AnyAsync(rp => rp.UserId == user.Id && rp.PostId == post.Id, cancellationToken))
             {

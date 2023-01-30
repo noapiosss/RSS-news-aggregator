@@ -9,6 +9,10 @@ using Domain.Database;
 using Domain.Helpers.Interfaces;
 
 using MediatR;
+using Domain.Base;
+using Microsoft.Extensions.Logging;
+using Domain.Excetions;
+using Contracts.Http;
 
 namespace Domain.Commands
 {
@@ -21,35 +25,35 @@ namespace Domain.Commands
 
     public class CreateUserCommandResult
     {
-        public bool IsRegistrationSuccessful { get; set; }
-        public bool UsernameIsAlreadyInUse { get; set; }
-        public bool EmailIsAlreadyInUse { get; set; }
+        public bool RegistrationIsSuccessful { get; set; }
     }
 
-    internal class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, CreateUserCommandResult>
+    internal class CreateUserCommandHandler : BaseHandler<CreateUserCommand, CreateUserCommandResult>
     {
         private readonly RSSNewsDbContext _dbContext;
         private readonly IPasswordHelper _passwordHelper;
 
-        public CreateUserCommandHandler(RSSNewsDbContext dbContext, IPasswordHelper passwordHelper)
+        public CreateUserCommandHandler(RSSNewsDbContext dbContext,
+            IPasswordHelper passwordHelper,
+            ILogger<CreateUserCommandHandler> logger) : base(logger)
         {
             _dbContext = dbContext;
             _passwordHelper = passwordHelper;
         }
 
-        public async Task<CreateUserCommandResult> Handle(CreateUserCommand request, CancellationToken cancellationToken = default)
+        protected override async Task<CreateUserCommandResult> HandleInternal(CreateUserCommand request, CancellationToken cancellationToken = default)
         {
             bool usernameIsAlreadyInUse = await _dbContext.Users.AnyAsync(u => u.Username == request.Username, cancellationToken);
             bool emailIsAlreadyInUse = await _dbContext.Users.AnyAsync(u => u.Email == request.Email, cancellationToken);
 
-            if (usernameIsAlreadyInUse || emailIsAlreadyInUse)
+            if (usernameIsAlreadyInUse)
             {
-                return new()
-                {
-                    IsRegistrationSuccessful = false,
-                    UsernameIsAlreadyInUse = usernameIsAlreadyInUse,
-                    EmailIsAlreadyInUse = emailIsAlreadyInUse
-                };
+                throw new RSSNewsReaderException(ErrorCode.UsernameIsAlreadyInUse, $"Username '{request.Username}' is already in use");
+            }
+
+            if (emailIsAlreadyInUse)
+            {
+                throw new RSSNewsReaderException(ErrorCode.EmailIsAlreadyInUse, $"Email '{request.Email}' is already in use");
             }
 
             User user = new()
@@ -64,9 +68,7 @@ namespace Domain.Commands
 
             return new()
             {
-                IsRegistrationSuccessful = true,
-                UsernameIsAlreadyInUse = usernameIsAlreadyInUse,
-                EmailIsAlreadyInUse = emailIsAlreadyInUse
+                RegistrationIsSuccessful = true
             };
         }
     }

@@ -6,8 +6,12 @@ using Contracts.Database;
 using Domain.Database;
 using MediatR;
 using System.Linq;
+using Domain.Base;
+using Domain.Excetions;
+using Contracts.Http;
+using Microsoft.Extensions.Logging;
 
-namespace domain.Queries
+namespace Domain.Queries
 {
     public class GetUserFeedsQuery : IRequest<GetUserFeedsQueryResult>
     {
@@ -19,25 +23,22 @@ namespace domain.Queries
         public ICollection<Feed> Feeds { get; set; }
     }
 
-    internal class GetUserFeedsQueryHandler : IRequestHandler<GetUserFeedsQuery, GetUserFeedsQueryResult>
+    internal class GetUserFeedsQueryHandler : BaseHandler<GetUserFeedsQuery, GetUserFeedsQueryResult>
     {
         private readonly RSSNewsDbContext _dbContext;
 
-        public GetUserFeedsQueryHandler(RSSNewsDbContext dbContext)
+        public GetUserFeedsQueryHandler(RSSNewsDbContext dbContext, ILogger<GetUserFeedsQueryHandler> logger) : base(logger)
         {
             _dbContext = dbContext;
         }
 
-        public async Task<GetUserFeedsQueryResult> Handle(GetUserFeedsQuery request, CancellationToken cancellationToken)
+        protected override async Task<GetUserFeedsQueryResult> HandleInternal(GetUserFeedsQuery request, CancellationToken cancellationToken)
         {
             User user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Username, cancellationToken);
 
             if (user == null)
             {
-                return new()
-                {
-                    Feeds = new List<Feed>()
-                };
+                throw new RSSNewsReaderException(ErrorCode.UserNotFound, $"User '{request.Username}' not found");
             }
 
             List<Feed> feeds = await _dbContext.Subscriptions
