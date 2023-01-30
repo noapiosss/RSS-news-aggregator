@@ -37,7 +37,7 @@ namespace Api.Services
             GetAllFeedsQuery getAllFeedsQuery = new() { };
             GetAllFeedsQueryResult getAllFeedsQueryResult = await mediator.Send(getAllFeedsQuery, cancellationToken);
 
-            _logger.LogInformation("Updating feeds started")
+            _logger.LogInformation("Updating feeds started");
 
             foreach (Feed feed in getAllFeedsQueryResult.Feeds)
             {
@@ -63,7 +63,7 @@ namespace Api.Services
                 _ = await mediator.Send(updateFeedPostsCommand, cancellationToken);
             }
 
-            _logger.LogInformation("Updating feeds ended")
+            _logger.LogInformation("Updating feeds ended");
         }
 
         public async Task DeleteSubscriblessFeed(CancellationToken cancellationToken)
@@ -71,7 +71,7 @@ namespace Api.Services
             using IServiceScope scope = _serviceScopeFactory.CreateScope();
             IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-            _logger.LogInformation("Removing subscribless feeds started")
+            _logger.LogInformation("Removing subscribless feeds started");
 
             GetSubscriblessFeedsQuery getSubscriblessFeedsQuery = new();
             GetSubscriblessFeedsQueryResult getSubscriblessFeedsQueryResult = await mediator.Send(getSubscriblessFeedsQuery, cancellationToken);
@@ -84,7 +84,7 @@ namespace Api.Services
                 _ = await mediator.Send(deleteFeedCommand, cancellationToken);
             }
 
-            _logger.LogInformation("Removing subscribless feeds ended")
+            _logger.LogInformation("Removing subscribless feeds ended");
         }
     }
 }
