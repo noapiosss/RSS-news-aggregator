@@ -13,16 +13,16 @@ using Microsoft.Extensions.Logging;
 namespace Api.Controllers
 {
     [Route("api/session")]
-    public class SessionCotroller : BaseCotroller
+    public class SessionController : BaseCotroller
     {
         private readonly IMediator _mediator;
         private readonly IValidator<SignUpRequest> _signUpRequestValidator;
         private readonly ITokenHandler _tokenHandler;
 
-        public SessionCotroller(IMediator mediator,
+        public SessionController(IMediator mediator,
             IValidator<SignUpRequest> signUpRequestValidator,
             ITokenHandler tokenHandler,
-            ILogger<SessionCotroller> logger) : base(logger)
+            ILogger<SessionController> logger) : base(logger)
         {
             _mediator = mediator;
             _signUpRequestValidator = signUpRequestValidator;
