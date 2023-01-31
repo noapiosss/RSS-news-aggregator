@@ -15,23 +15,27 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using FluentValidation;
 using Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Api.Controllers
 {
-    [Route("api/users")]
+    [Route("api")]
     public class UserController : BaseCotroller
     {
         private readonly IMediator _mediator;
         private readonly ISyndicationConverter _syndicationConverter;
         private readonly ITokenHandler _tokenHandler;
+        private readonly IUserService _userService;
         public UserController(IMediator mediator,
             ISyndicationConverter syndicationConverter,
             ITokenHandler tokenHandler,
+            IUserService userService,
             ILogger<UserController> logger) : base(logger)
         {
             _mediator = mediator;
             _syndicationConverter = syndicationConverter;
             _tokenHandler = tokenHandler;
+            _userService = userService;
         }
 
         /// <summary>
@@ -41,12 +45,12 @@ namespace Api.Controllers
         /// <response code="200">Return feed in json fromat</response>
         /// <response code="401">Unauthorized</response>
         /// <response code="500">Internal Server Error</response>
-        [HttpPut("{token}/feeds")]
-        public Task<IActionResult> AddFeed([FromRoute] string token, [FromBody] AddFeedRequest request, CancellationToken cancellationToken)
+        [HttpPut("feeds"), Authorize]
+        public Task<IActionResult> AddFeed([FromBody] AddFeedRequest request, CancellationToken cancellationToken)
         {
             return SafeExecute(async () =>
             {
-                if (!_tokenHandler.Validate(token, out string username))
+                if (!_userService.IsAuthorized(out string username))
                 {
                     return ToActionResult(new()
                     {
@@ -108,12 +112,12 @@ namespace Api.Controllers
         /// <response code="200">Return feeds in json fromat</response>
         /// <response code="401">Unauthorized</response>
         /// <response code="500">Internal Server Error</response>
-        [HttpGet("{token}/feeds")]
-        public Task<IActionResult> GetFeeds([FromRoute] string token, CancellationToken cancellationToken)
+        [HttpGet("feeds"), Authorize]
+        public Task<IActionResult> GetFeeds(CancellationToken cancellationToken)
         {
             return SafeExecute(async () =>
             {
-                if (!_tokenHandler.Validate(token, out string username))
+                if (!_userService.IsAuthorized(out string username))
                 {
                     return ToActionResult(new()
                     {
@@ -136,19 +140,18 @@ namespace Api.Controllers
         /// Return unread posts since the inputted date
         /// </summary>
         /// <returns>List of posts</returns>
-        /// <param name="token"></param>
         /// <param name="sinceDateRequest">Should be in format dd-mm-yyyy</param>
         /// <param name="cancellationToken"></param>
         /// <response code="200">Return psots in json fromat</response>
         /// <response code="400">Invalid input</response>
         /// <response code="401">Unauthorized</response>
         /// <response code="500">Internal Server Error</response>
-        [HttpGet("{token}/posts/isunread/{sinceDateRequest}")]
-        public Task<IActionResult> GetUnreadPostsSinceDate([FromRoute] string token, string sinceDateRequest, CancellationToken cancellationToken)
+        [HttpGet("posts/isunread/{sinceDateRequest}"), Authorize]
+        public Task<IActionResult> GetUnreadPostsSinceDate(string sinceDateRequest, CancellationToken cancellationToken)
         {
             return SafeExecute(async () =>
             {
-                if (!_tokenHandler.Validate(token, out string username))
+                if (!_userService.IsAuthorized(out string username))
                 {
                     return ToActionResult(new()
                     {
@@ -185,12 +188,12 @@ namespace Api.Controllers
         /// <response code="403">Post not fount</response>
         /// <response code="401">Unauthorized</response>
         /// <response code="500">Internal Server Error</response>
-        [HttpPut("{token}/posts/isread")]
-        public Task<IActionResult> MarkAsReadById([FromRoute] string token, [FromBody] int postId, CancellationToken cancellationToken)
+        [HttpPut("posts/isread"), Authorize]
+        public Task<IActionResult> MarkAsReadById([FromBody] int postId, CancellationToken cancellationToken)
         {
             return SafeExecute(async () =>
             {
-                if (!_tokenHandler.Validate(token, out string username))
+                if (!_userService.IsAuthorized(out string username))
                 {
                     return ToActionResult(new()
                     {

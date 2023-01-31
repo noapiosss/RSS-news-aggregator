@@ -61,7 +61,6 @@ namespace Api.Services
                 signingCredentials: cred);
 
             string jwt = new JwtSecurityTokenHandler().WriteToken(token);
-
             return jwt;
         }
     }
